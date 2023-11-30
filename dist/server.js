@@ -19,6 +19,14 @@ app.use((0, cors_1.default)({
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
 }));
+app.use(express_1.default.json({ limit: "50mb" }));
+app.use(express_1.default.urlencoded({ limit: "50mb", extended: true }));
+// set default timeout to 20 minutes
+app.use((req, res, next) => {
+    req.setTimeout(1200000);
+    res.setTimeout(1200000);
+    next();
+});
 //add body parser
 app.use(express_1.default.json());
 app.get("/", (req, res) => {
