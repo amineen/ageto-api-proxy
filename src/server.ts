@@ -23,6 +23,16 @@ app.use(
   })
 );
 
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// set default timeout to 20 minutes
+app.use((req, res, next) => {
+  req.setTimeout(1200000);
+  res.setTimeout(1200000);
+  next();
+});
+
 //add body parser
 app.use(express.json());
 
