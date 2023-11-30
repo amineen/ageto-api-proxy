@@ -23,6 +23,9 @@ app.use(
   })
 );
 
+//add body parser
+app.use(express.json());
+
 app.get("/", (req, res) => {
   return res.status(200).json({
     msg: "Welcome to Totalizer Scraping API",
