@@ -39,5 +39,14 @@ router
 router
     .route("/totalizer-data")
     .get(generationDataController.getTotalizerDailyReadings);
+router
+    .route("/last-totalizer-reading")
+    .get(generationDataController.getLastTotalizerRecord);
+router
+    .route("/update-last-totalizer-reading")
+    .get(generationDataController.updateLastTotalizerRecord);
+router
+    .route("/totalizer-data-for-chart")
+    .get(generationDataController.getTotalizerDailyReadingsForCharting);
 exports.default = router;
 //# sourceMappingURL=generation-data-routes.js.map
