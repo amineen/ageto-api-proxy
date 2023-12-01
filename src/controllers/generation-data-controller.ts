@@ -2,6 +2,7 @@ import { GenerationDataType } from "../models/types";
 import { GenerationDataSchemaModel } from "../models/GenerationDataSchema";
 import { Request, Response } from "express";
 import TotalizerDataModel from "../models/TotalizerDataModel";
+import LastTotalizerRecordSchema from "../models/LastTotalizerRecordSchema";
 
 //@desc Insert array of generation data into database
 //@route POST /api/v1/generation-data
@@ -225,6 +226,69 @@ export const getTotalizerDailyReadings = async (
     return res.status(200).json({
       success: true,
       data: result[0],
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+//@desc GET the last totalizer record
+//@route GET /api/v1/generation-data/last-record
+//@access Private
+export const getLastTotalizerRecord = async (req: Request, res: Response) => {
+  try {
+    const result = await LastTotalizerRecordSchema.find({})
+      .sort({ _id: -1 })
+      .limit(1);
+
+    return res.status(200).json({
+      success: true,
+      data: result[0],
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+//@desc get the last totalizer record in totalizer data collection and insert it into last totalizer record collection
+//@route GET /api/v1/generation-data/last-record
+//@access Private
+export const updateLastTotalizerRecord = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const result = await TotalizerDataModel.find({}).sort({ _id: -1 }).limit(1);
+
+    const lastRecord = result[0].readings[result[0].readings.length - 1];
+
+    const lastRecordDate = new Date(lastRecord.datetime);
+
+    const lastRecordDateObj = {
+      datetime: lastRecordDate,
+      L1_true_power_avg: lastRecord.L1_true_power_avg,
+      L2_true_power_avg: lastRecord.L2_true_power_avg,
+      L3_true_power_avg: lastRecord.L3_true_power_avg,
+      total_true_power_avg: lastRecord.total_true_power_avg,
+      L1_current_avg: lastRecord.L1_current_avg,
+      L2_current_avg: lastRecord.L2_current_avg,
+      L3_current_avg: lastRecord.L3_current_avg,
+      total_current_avg: lastRecord.total_current_avg,
+    };
+
+    const result2 = await LastTotalizerRecordSchema.insertMany(
+      lastRecordDateObj
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result2,
     });
   } catch (error: any) {
     return res.status(500).json({

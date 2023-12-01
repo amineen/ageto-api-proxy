@@ -76,3 +76,15 @@ export type TotalizerDataType = {
   dailykWh: number;
   readings: TotalizerDailyReadingsType[];
 };
+
+export type LastTotalizerRecordingType = {
+  datetime: Date;
+  L1_true_power_avg: number;
+  L2_true_power_avg: number;
+  L3_true_power_avg: number;
+  total_true_power_avg: number;
+  L1_current_avg: number;
+  L2_current_avg: number;
+  L3_current_avg: number;
+  total_current_avg: number;
+};

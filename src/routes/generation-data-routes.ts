@@ -16,4 +16,12 @@ router
   .route("/totalizer-data")
   .get(generationDataController.getTotalizerDailyReadings);
 
+router
+  .route("/last-totalizer-reading")
+  .get(generationDataController.getLastTotalizerRecord);
+
+router
+  .route("/update-last-totalizer-reading")
+  .get(generationDataController.updateLastTotalizerRecord);
+
 export default router;
