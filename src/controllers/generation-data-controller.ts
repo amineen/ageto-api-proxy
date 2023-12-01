@@ -264,6 +264,8 @@ export const getTotalizerDailyReadingsForCharting = async (
           dailyAccumulativeEnergy: { $first: "$dailyAccumulativeEnergy" },
           dailykWh: { $first: "$dailykWh" },
           peakLoad: { $max: "$readings.total_true_power_avg" },
+          //get date from readings.datetime
+          date: { $first: { $substr: ["$readings.datetime", 0, 10] } },
           times: { $push: { $substr: ["$readings.datetime", 11, 5] } },
           L1_current_avg: { $push: "$readings.L1_current_avg" },
           L2_current_avg: { $push: "$readings.L2_current_avg" },
@@ -275,7 +277,7 @@ export const getTotalizerDailyReadingsForCharting = async (
       {
         $project: {
           _id: 0,
-          date: date,
+          date: "$date",
           dailykWh: 1,
           peakLoad: 1,
           readings: {
