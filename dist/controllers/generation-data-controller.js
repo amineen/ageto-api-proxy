@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.insertGenerationData = void 0;
+exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.insertGenerationData = void 0;
 const GenerationDataSchema_1 = require("../models/GenerationDataSchema");
 const TotalizerDataModel_1 = __importDefault(require("../models/TotalizerDataModel"));
 const LastTotalizerRecordSchema_1 = __importDefault(require("../models/LastTotalizerRecordSchema"));
@@ -342,4 +342,80 @@ const updateLastTotalizerRecord = async (req, res) => {
     }
 };
 exports.updateLastTotalizerRecord = updateLastTotalizerRecord;
+//@desc get generation data for charting
+//@route GET /api/v1/generation-data/charting-data
+//@access Private
+const getGenerationDataForCharting = async (req, res) => {
+    try {
+        let date = req.query.date;
+        //if date is not provided, set date to today
+        if (!date) {
+            date = new Date().toISOString().split("T")[0];
+        }
+        const result = await GenerationDataSchema_1.GenerationDataSchemaModel.aggregate([
+            {
+                $match: {
+                    timestamp: { $regex: date },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    date: { $first: { $substr: ["$timestamp", 0, 10] } },
+                    totalLoad: { $sum: "$LOAD_E_total" },
+                    genEnergy: { $sum: "$GEN_E_total" },
+                    batteryDIS: { $sum: "$INV_E_total_DIS" },
+                    batteryCHG: { $sum: "$INV_E_total_CHG" },
+                    pvEnergy: { $sum: "$PV_E_total" },
+                    peakLoad: { $max: "$LOAD1_P_total_max" },
+                    bms: { $push: "$BMS1_P_total_current" },
+                    bmsSOC: { $push: "$BMS1_SOC" },
+                    gen: { $push: "$GEN_P_total_current" },
+                    inv1: { $push: "$INV1_P_total_current" },
+                    inv2: { $push: "$INV2_P_total_current" },
+                    load: { $push: "$LOAD1_P_total_current" },
+                    pv1: { $push: "$PV1_P_total_current" },
+                    pv2: { $push: "$PV2_P_total_current" },
+                    pv3: { $push: "$PV3_P_total_current" },
+                    timestamp: { $push: { $substr: ["$timestamp", 11, 5] } },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    date: "$date",
+                    totalLoad: 1,
+                    genEnergy: 1,
+                    batteryDIS: 1,
+                    batteryCHG: 1,
+                    pvEnergy: 1,
+                    peakLoad: 1,
+                    records: {
+                        bms: "$bms",
+                        bmsSOC: "$bmsSOC",
+                        gen: "$gen",
+                        inv1: "$inv1",
+                        inv2: "$inv2",
+                        load: "$load",
+                        pv1: "$pv1",
+                        pv2: "$pv2",
+                        pv3: "$pv3",
+                        timestamp: "$timestamp",
+                    },
+                },
+            },
+        ]);
+        return res.status(200).json({
+            success: true,
+            data: result[0],
+        });
+    }
+    catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+};
+exports.getGenerationDataForCharting = getGenerationDataForCharting;
 //# sourceMappingURL=generation-data-controller.js.map

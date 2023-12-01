@@ -28,4 +28,8 @@ router
   .route("/totalizer-data-for-chart")
   .get(generationDataController.getTotalizerDailyReadingsForCharting);
 
+router
+  .route("/generation-data-for-chart")
+  .get(generationDataController.getGenerationDataForCharting);
+
 export default router;

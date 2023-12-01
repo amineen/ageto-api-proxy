@@ -366,3 +366,84 @@ export const updateLastTotalizerRecord = async (
     });
   }
 };
+
+//@desc get generation data for charting
+//@route GET /api/v1/generation-data/charting-data
+//@access Private
+
+export const getGenerationDataForCharting = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    let date = req.query.date;
+    //if date is not provided, set date to today
+    if (!date) {
+      date = new Date().toISOString().split("T")[0];
+    }
+
+    const result = await GenerationDataSchemaModel.aggregate([
+      {
+        $match: {
+          timestamp: { $regex: date },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          date: { $first: { $substr: ["$timestamp", 0, 10] } },
+          totalLoad: { $sum: "$LOAD_E_total" },
+          genEnergy: { $sum: "$GEN_E_total" },
+          batteryDIS: { $sum: "$INV_E_total_DIS" },
+          batteryCHG: { $sum: "$INV_E_total_CHG" },
+          pvEnergy: { $sum: "$PV_E_total" },
+          peakLoad: { $max: "$LOAD1_P_total_max" },
+          bms: { $push: "$BMS1_P_total_current" },
+          bmsSOC: { $push: "$BMS1_SOC" },
+          gen: { $push: "$GEN_P_total_current" },
+          inv1: { $push: "$INV1_P_total_current" },
+          inv2: { $push: "$INV2_P_total_current" },
+          load: { $push: "$LOAD1_P_total_current" },
+          pv1: { $push: "$PV1_P_total_current" },
+          pv2: { $push: "$PV2_P_total_current" },
+          pv3: { $push: "$PV3_P_total_current" },
+          timestamp: { $push: { $substr: ["$timestamp", 11, 5] } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$date",
+          totalLoad: 1,
+          genEnergy: 1,
+          batteryDIS: 1,
+          batteryCHG: 1,
+          pvEnergy: 1,
+          peakLoad: 1,
+          records: {
+            bms: "$bms",
+            bmsSOC: "$bmsSOC",
+            gen: "$gen",
+            inv1: "$inv1",
+            inv2: "$inv2",
+            load: "$load",
+            pv1: "$pv1",
+            pv2: "$pv2",
+            pv3: "$pv3",
+            timestamp: "$timestamp",
+          },
+        },
+      },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: result[0],
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};

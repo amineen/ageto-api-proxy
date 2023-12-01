@@ -48,5 +48,8 @@ router
 router
     .route("/totalizer-data-for-chart")
     .get(generationDataController.getTotalizerDailyReadingsForCharting);
+router
+    .route("/generation-data-for-chart")
+    .get(generationDataController.getGenerationDataForCharting);
 exports.default = router;
 //# sourceMappingURL=generation-data-routes.js.map
