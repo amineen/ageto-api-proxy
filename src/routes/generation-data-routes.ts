@@ -24,4 +24,8 @@ router
   .route("/update-last-totalizer-reading")
   .get(generationDataController.updateLastTotalizerRecord);
 
+router
+  .route("/totalizer-data-for-chart")
+  .get(generationDataController.getTotalizerDailyReadingsForCharting);
+
 export default router;

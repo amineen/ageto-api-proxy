@@ -235,6 +235,73 @@ export const getTotalizerDailyReadings = async (
   }
 };
 
+//@desc GET totalizer daily readings for charting
+//@route GET /api/v1/generation-data/daily-data-charting?date=YYYY-MM-DD
+//@access Private
+export const getTotalizerDailyReadingsForCharting = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    let date = req.query.date;
+    //if date is not provided, set date to today
+    if (!date) {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth() + 1;
+      const day = today.getDate();
+      date = `${year}-${month}-${day}`;
+    }
+
+    const result = await TotalizerDataModel.aggregate([
+      { $match: { dateKey: date } },
+      {
+        $unwind: "$readings",
+      },
+      {
+        $group: {
+          _id: null,
+          dailyAccumulativeEnergy: { $first: "$dailyAccumulativeEnergy" },
+          dailykWh: { $first: "$dailykWh" },
+          peakLoad: { $max: "$readings.total_true_power_avg" },
+          times: { $push: { $substr: ["$readings.datetime", 11, 5] } },
+          L1_current_avg: { $push: "$readings.L1_current_avg" },
+          L2_current_avg: { $push: "$readings.L2_current_avg" },
+          L3_current_avg: { $push: "$readings.L3_current_avg" },
+          total_current_avg: { $push: "$readings.total_current_avg" },
+          total_true_power_avg: { $push: "$readings.total_true_power_avg" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: date,
+          dailykWh: 1,
+          peakLoad: 1,
+          readings: {
+            times: "$times",
+            L1_current_avg: "$L1_current_avg",
+            L2_current_avg: "$L2_current_avg",
+            L3_current_avg: "$L3_current_avg",
+            total_current_avg: "$total_current_avg",
+            total_true_power_avg: "$total_true_power_avg",
+          },
+        },
+      },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: result[0],
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 //@desc GET the last totalizer record
 //@route GET /api/v1/generation-data/last-record
 //@access Private
