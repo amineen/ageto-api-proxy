@@ -443,6 +443,9 @@ const getGenerationDailyEnergyTotal = async (req, res) => {
                     batteryCHG: { $sum: "$INV_E_total_CHG" },
                     pvEnergy: { $sum: "$PV_E_total" },
                     totalLoad: { $sum: "$LOAD_E_total" },
+                    peakLoad: { $max: "$LOAD1_P_total_max" },
+                    firstCO2Offset: { $first: "$OFFSETS_CO2_tons" },
+                    lastCO2Offset: { $last: "$OFFSETS_CO2_tons" },
                 },
             },
             {
@@ -453,6 +456,8 @@ const getGenerationDailyEnergyTotal = async (req, res) => {
                     batteryCHG: 1,
                     pvEnergy: 1,
                     totalLoad: 1,
+                    peakLoad: 1,
+                    dailyCO2Offset: { $subtract: ["$lastCO2Offset", "$firstCO2Offset"] },
                 },
             },
         ]);
