@@ -448,3 +448,57 @@ export const getGenerationDataForCharting = async (
     });
   }
 };
+
+//@desc generation daily energy total for a given date
+//@route GET /api/v1/generation-data/daily-energy-total?date=YYYY-MM-DD
+//@access Private
+export const getGenerationDailyEnergyTotal = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    let date = req.query.date;
+    //if date is not provided, set date to today
+    if (!date) {
+      date = new Date().toISOString().split("T")[0];
+    }
+
+    const result = await GenerationDataSchemaModel.aggregate([
+      {
+        $match: {
+          timestamp: { $regex: date },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          genEnergy: { $sum: "$GEN_E_total" },
+          batteryDIS: { $sum: "$INV_E_total_DIS" },
+          batteryCHG: { $sum: "$INV_E_total_CHG" },
+          pvEnergy: { $sum: "$PV_E_total" },
+          totalLoad: { $sum: "$LOAD_E_total" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          genEnergy: 1,
+          batteryDIS: 1,
+          batteryCHG: 1,
+          pvEnergy: 1,
+          totalLoad: 1,
+        },
+      },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: result[0],
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};

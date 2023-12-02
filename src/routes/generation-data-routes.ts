@@ -32,4 +32,8 @@ router
   .route("/generation-data-for-chart")
   .get(generationDataController.getGenerationDataForCharting);
 
+router
+  .route("/daily-energy-total")
+  .get(generationDataController.getGenerationDailyEnergyTotal);
+
 export default router;

@@ -51,5 +51,8 @@ router
 router
     .route("/generation-data-for-chart")
     .get(generationDataController.getGenerationDataForCharting);
+router
+    .route("/daily-energy-total")
+    .get(generationDataController.getGenerationDailyEnergyTotal);
 exports.default = router;
 //# sourceMappingURL=generation-data-routes.js.map

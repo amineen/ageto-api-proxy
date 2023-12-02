@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.insertGenerationData = void 0;
+exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.insertGenerationData = void 0;
 const GenerationDataSchema_1 = require("../models/GenerationDataSchema");
 const TotalizerDataModel_1 = __importDefault(require("../models/TotalizerDataModel"));
 const LastTotalizerRecordSchema_1 = __importDefault(require("../models/LastTotalizerRecordSchema"));
@@ -419,4 +419,54 @@ const getGenerationDataForCharting = async (req, res) => {
     }
 };
 exports.getGenerationDataForCharting = getGenerationDataForCharting;
+//@desc generation daily energy total for a given date
+//@route GET /api/v1/generation-data/daily-energy-total?date=YYYY-MM-DD
+//@access Private
+const getGenerationDailyEnergyTotal = async (req, res) => {
+    try {
+        let date = req.query.date;
+        //if date is not provided, set date to today
+        if (!date) {
+            date = new Date().toISOString().split("T")[0];
+        }
+        const result = await GenerationDataSchema_1.GenerationDataSchemaModel.aggregate([
+            {
+                $match: {
+                    timestamp: { $regex: date },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    genEnergy: { $sum: "$GEN_E_total" },
+                    batteryDIS: { $sum: "$INV_E_total_DIS" },
+                    batteryCHG: { $sum: "$INV_E_total_CHG" },
+                    pvEnergy: { $sum: "$PV_E_total" },
+                    totalLoad: { $sum: "$LOAD_E_total" },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    genEnergy: 1,
+                    batteryDIS: 1,
+                    batteryCHG: 1,
+                    pvEnergy: 1,
+                    totalLoad: 1,
+                },
+            },
+        ]);
+        return res.status(200).json({
+            success: true,
+            data: result[0],
+        });
+    }
+    catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+};
+exports.getGenerationDailyEnergyTotal = getGenerationDailyEnergyTotal;
 //# sourceMappingURL=generation-data-controller.js.map
