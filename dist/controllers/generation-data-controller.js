@@ -586,4 +586,8 @@ const getGenerationDailyEnergyTotal = async (req, res) => {
     }
 };
 exports.getGenerationDailyEnergyTotal = getGenerationDailyEnergyTotal;
+// @desc get generation data for a given month
+// @route GET /api/v1/generation-data/monthly-data?month=YYYY-MM
+// @access Private
+// TODO: implement this endpoint
 //# sourceMappingURL=generation-data-controller.js.map

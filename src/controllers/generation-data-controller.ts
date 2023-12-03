@@ -664,3 +664,8 @@ export const getGenerationDailyEnergyTotal = async (
     });
   }
 };
+
+// @desc get generation data for a given month
+// @route GET /api/v1/generation-data/monthly-data?month=YYYY-MM
+// @access Private
+// TODO: implement this endpoint
