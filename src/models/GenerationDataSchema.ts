@@ -146,6 +146,19 @@ const GenerationDataSchema = new Schema<GenerationDataType>({
     type: Number,
     required: true,
   },
+
+  PV3_P_total_min: {
+    type: Number,
+    required: true,
+  },
+  PV3_P_total_max: {
+    type: Number,
+    required: true,
+  },
+  PV3_P_total_current: {
+    type: Number,
+    required: true,
+  },
   timestamp: {
     type: String,
     required: true,

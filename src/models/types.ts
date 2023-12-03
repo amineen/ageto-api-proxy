@@ -35,6 +35,9 @@ export type GenerationDataType = {
   PV2_P_total_current: number;
   PV_E_total: number;
   PV3_P_total_avg: number;
+  PV3_P_total_min: number;
+  PV3_P_total_max: number;
+  PV3_P_total_current: number;
   timestamp: string;
 };
 
@@ -136,7 +139,4 @@ export type EnergyData = {
 
 export type DailyEnergyTotalType = EnergyData & {
   date: string;
-  lastReading: {
-    [key in ColumnType]: number;
-  };
 };

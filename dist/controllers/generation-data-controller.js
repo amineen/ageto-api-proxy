@@ -34,6 +34,53 @@ const insertGenerationData = async (req, res) => {
     }
 };
 exports.insertGenerationData = insertGenerationData;
+const getAgetoData = async (date) => {
+    const from = `${date}T00:00:00.000Z`;
+    const to = `${date}T23:59:59.999Z`;
+    const columns = types_1.dataColumns.join(",");
+    const agetoAPIResponse = await axios_1.default.get(`${AGETO_API_BASE_URL}?device=Totota&from=${from}&to=${to}&columns=${columns}`, {
+        headers: {
+            Authorization: `Bearer ${AGETO_API_TOKEN}`,
+        },
+    });
+    const data = agetoAPIResponse.data;
+    const computedData = (0, util_services_1.computeData)(data);
+    return computedData;
+};
+const getLastReadingFromAgetoAPI = async () => {
+    const to = new Date().toISOString();
+    //from 30 minutes ago
+    const from = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const columns = types_1.dataColumns.join(",");
+    const agetoAPIResponse = await axios_1.default.get(`${AGETO_API_BASE_URL}?device=Totota&from=${from}&to=${to}&columns=${columns}`, {
+        headers: {
+            Authorization: `Bearer ${AGETO_API_TOKEN}`,
+        },
+    });
+    const responseData = agetoAPIResponse.data;
+    const columnData = responseData.format.data;
+    const payload = responseData.payload;
+    const lastPayloadItem = payload[payload.length - 1];
+    const initialParsedData = columnData.reduce((acc, key) => {
+        acc[key] = 0;
+        return acc;
+    }, {});
+    const lastParsedItem = { ...initialParsedData, timestamp: lastPayloadItem.meta[0] };
+    columnData.forEach((column, index) => {
+        lastParsedItem[column] = lastPayloadItem.data[index];
+    });
+    const lastReadings = {
+        bmsSOC: lastParsedItem.BMS1_SOC,
+        bmsTotalPower: lastParsedItem.BMS1_P_total,
+        loadTotalPower: lastParsedItem.LOAD1_P_total,
+        pvTotalPower: lastParsedItem.PV1_P_total +
+            lastParsedItem.PV2_P_total +
+            lastParsedItem.PV3_P_total,
+        genTotalPower: lastParsedItem.GEN_P_total,
+        timestamp: lastParsedItem.timestamp,
+    };
+    return lastReadings;
+};
 //@desc Get energy data from ageto api for a given date "YYYY-MM-DD"
 //@route POST /api/v1/generation-data/ageto-api?date=YYYY-MM-DD
 //@access Private
@@ -44,16 +91,7 @@ const getEnergyDataFromAgetoAPI = async (req, res) => {
         if (!date) {
             date = new Date().toISOString().split("T")[0];
         }
-        const from = `${date}T00:00:00.000Z`;
-        const to = `${date}T23:59:59.999Z`;
-        const columns = types_1.dataColumns.join(",");
-        const agetoAPIResponse = await axios_1.default.get(`${AGETO_API_BASE_URL}?device=Totota&from=${from}&to=${to}&columns=${columns}`, {
-            headers: {
-                Authorization: `Bearer ${AGETO_API_TOKEN}`,
-            },
-        });
-        const data = agetoAPIResponse.data;
-        const computedData = (0, util_services_1.computeData)(data);
+        const computedData = await getAgetoData(date);
         return res.status(200).json({
             success: true,
             data: computedData,
@@ -67,31 +105,57 @@ const getEnergyDataFromAgetoAPI = async (req, res) => {
     }
 };
 exports.getEnergyDataFromAgetoAPI = getEnergyDataFromAgetoAPI;
+const getLastRecord = (lastRecord) => {
+    const { PV3_P_total_current, PV3_P_total_avg } = lastRecord;
+    let pv3Power = PV3_P_total_current || PV3_P_total_avg;
+    return {
+        bmsSOC: lastRecord.BMS1_SOC,
+        bmsTotalPower: lastRecord.BMS1_P_total_current,
+        genTotalPower: lastRecord.GEN_P_total_current,
+        loadTotalPower: lastRecord.LOAD1_P_total_current,
+        pvTotalPower: lastRecord.PV1_P_total_current +
+            lastRecord.PV2_P_total_current +
+            pv3Power,
+        timestamp: lastRecord.timestamp,
+    };
+};
 //@desc Get the last data in the database
 //@route GET /api/v1/generation-data/last-reading
 //@access Private
 const getLastGenerationDataReading = async (req, res) => {
     try {
-        const result = await GenerationDataSchema_1.GenerationDataSchemaModel.find({}, {
-            BMS1_SOC: 1,
-            BMS1_P_total_current: 1,
-            GEN_P_total_current: 1,
-            INV1_P_total_current: 1,
-            INV2_P_total_current: 1,
-            LOAD1_P_total_current: 1,
-            OFFSETS_CO2_tons: 1,
-            PV1_P_total_current: 1,
-            PV2_P_total_current: 1,
-            PV3_P_total_current: 1,
-            timestamp: 1,
-            _id: 0,
-        })
-            .sort({ _id: -1 })
-            .limit(1);
-        return res.status(200).json({
-            success: true,
-            data: result,
-        });
+        const lastReadingFromAgetoAPI = await getLastReadingFromAgetoAPI();
+        if (!lastReadingFromAgetoAPI) {
+            const result = await GenerationDataSchema_1.GenerationDataSchemaModel.find({}, {
+                BMS1_SOC: 1,
+                BMS1_P_total_current: 1,
+                GEN_P_total_current: 1,
+                INV1_P_total_current: 1,
+                INV2_P_total_current: 1,
+                LOAD1_P_total_current: 1,
+                OFFSETS_CO2_tons: 1,
+                PV1_P_total_current: 1,
+                PV2_P_total_current: 1,
+                PV3_P_total_current: 1,
+                PV3_P_total_avg: 1,
+                timestamp: 1,
+                _id: 0,
+            })
+                .sort({ _id: -1 })
+                .limit(1);
+            const lastRecord = result[0];
+            const lastReadings = getLastRecord(lastRecord);
+            return res.status(200).json({
+                success: true,
+                data: lastReadings,
+            });
+        }
+        else {
+            return res.status(200).json({
+                success: true,
+                data: lastReadingFromAgetoAPI,
+            });
+        }
     }
     catch (error) {
         return res.status(500).json({
@@ -468,6 +532,14 @@ const getGenerationDailyEnergyTotal = async (req, res) => {
         //if date is not provided, set date to today
         if (!date) {
             date = new Date().toISOString().split("T")[0];
+        }
+        const today = new Date().toISOString().split("T")[0];
+        if (date === today) {
+            const computedData = await getAgetoData(date);
+            return res.status(200).json({
+                success: true,
+                data: computedData,
+            });
         }
         const result = await GenerationDataSchema_1.GenerationDataSchemaModel.aggregate([
             {

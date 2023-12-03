@@ -43,13 +43,12 @@ export function computeData(
     lastParsedItem.OFFSETS_CO2_tons - firstParsedItem.OFFSETS_CO2_tons;
 
   return {
+    date: lastParsedItem.timestamp.split("T")[0] as string,
     pvEnergy,
     genEnergy,
     totalLoad,
     batteryDIS,
     batteryCHG,
     dailyCO2Offset,
-    date: lastParsedItem.timestamp.split("T")[0] as string,
-    lastReading: lastParsedItem,
   };
 }
