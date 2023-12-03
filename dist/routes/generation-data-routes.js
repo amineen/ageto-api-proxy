@@ -54,5 +54,8 @@ router
 router
     .route("/daily-energy-total")
     .get(generationDataController.getGenerationDailyEnergyTotal);
+router
+    .route("/daily-energy-from-ageto-api")
+    .get(generationDataController.getEnergyDataFromAgetoAPI);
 exports.default = router;
 //# sourceMappingURL=generation-data-routes.js.map

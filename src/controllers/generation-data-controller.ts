@@ -1,8 +1,21 @@
-import { GenerationDataType } from "../models/types";
+import {
+  GenerationDataType,
+  ColumnType,
+  dataColumns,
+  AgetoResponseDataType,
+} from "../models/types";
 import { GenerationDataSchemaModel } from "../models/GenerationDataSchema";
 import { Request, Response } from "express";
 import TotalizerDataModel from "../models/TotalizerDataModel";
 import LastTotalizerRecordSchema from "../models/LastTotalizerRecordSchema";
+import axios from "axios";
+
+import dotenv from "dotenv";
+import { computeData } from "../services/util-services";
+dotenv.config();
+
+const AGETO_API_BASE_URL = process.env.AGETO_API_BASE_URL as string;
+const AGETO_API_TOKEN = process.env.AGETO_API_TOKEN as string;
 
 //@desc Insert array of generation data into database
 //@route POST /api/v1/generation-data
@@ -15,6 +28,50 @@ export const insertGenerationData = async (req: Request, res: Response) => {
     return res.status(200).json({
       success: true,
       data: { insertCount: result.length },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+//@desc Get energy data from ageto api for a given date "YYYY-MM-DD"
+//@route POST /api/v1/generation-data/ageto-api?date=YYYY-MM-DD
+//@access Private
+export const getEnergyDataFromAgetoAPI = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    let date = req.query.date;
+    //if date is not provided, set date to today
+    if (!date) {
+      date = new Date().toISOString().split("T")[0];
+    }
+
+    const from = `${date}T00:00:00.000Z`;
+    const to = `${date}T23:59:59.999Z`;
+
+    const columns = dataColumns.join(",");
+
+    const agetoAPIResponse = await axios.get(
+      `${AGETO_API_BASE_URL}?device=Totota&from=${from}&to=${to}&columns=${columns}`,
+      {
+        headers: {
+          Authorization: `Bearer ${AGETO_API_TOKEN}`,
+        },
+      }
+    );
+
+    const data = agetoAPIResponse.data as AgetoResponseDataType;
+
+    const computedData = computeData(data);
+
+    return res.status(200).json({
+      success: true,
+      data: computedData,
     });
   } catch (error: any) {
     return res.status(500).json({

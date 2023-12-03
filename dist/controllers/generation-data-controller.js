@@ -3,10 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.insertGenerationData = void 0;
+exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.getEnergyDataFromAgetoAPI = exports.insertGenerationData = void 0;
+const types_1 = require("../models/types");
 const GenerationDataSchema_1 = require("../models/GenerationDataSchema");
 const TotalizerDataModel_1 = __importDefault(require("../models/TotalizerDataModel"));
 const LastTotalizerRecordSchema_1 = __importDefault(require("../models/LastTotalizerRecordSchema"));
+const axios_1 = __importDefault(require("axios"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const util_services_1 = require("../services/util-services");
+dotenv_1.default.config();
+const AGETO_API_BASE_URL = process.env.AGETO_API_BASE_URL;
+const AGETO_API_TOKEN = process.env.AGETO_API_TOKEN;
 //@desc Insert array of generation data into database
 //@route POST /api/v1/generation-data
 //@access Private
@@ -27,6 +34,39 @@ const insertGenerationData = async (req, res) => {
     }
 };
 exports.insertGenerationData = insertGenerationData;
+//@desc Get energy data from ageto api for a given date "YYYY-MM-DD"
+//@route POST /api/v1/generation-data/ageto-api?date=YYYY-MM-DD
+//@access Private
+const getEnergyDataFromAgetoAPI = async (req, res) => {
+    try {
+        let date = req.query.date;
+        //if date is not provided, set date to today
+        if (!date) {
+            date = new Date().toISOString().split("T")[0];
+        }
+        const from = `${date}T00:00:00.000Z`;
+        const to = `${date}T23:59:59.999Z`;
+        const columns = types_1.dataColumns.join(",");
+        const agetoAPIResponse = await axios_1.default.get(`${AGETO_API_BASE_URL}?device=Totota&from=${from}&to=${to}&columns=${columns}`, {
+            headers: {
+                Authorization: `Bearer ${AGETO_API_TOKEN}`,
+            },
+        });
+        const data = agetoAPIResponse.data;
+        const computedData = (0, util_services_1.computeData)(data);
+        return res.status(200).json({
+            success: true,
+            data: computedData,
+        });
+    }
+    catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+};
+exports.getEnergyDataFromAgetoAPI = getEnergyDataFromAgetoAPI;
 //@desc Get the last data in the database
 //@route GET /api/v1/generation-data/last-reading
 //@access Private

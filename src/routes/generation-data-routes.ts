@@ -36,4 +36,8 @@ router
   .route("/daily-energy-total")
   .get(generationDataController.getGenerationDailyEnergyTotal);
 
+router
+  .route("/daily-energy-from-ageto-api")
+  .get(generationDataController.getEnergyDataFromAgetoAPI);
+
 export default router;

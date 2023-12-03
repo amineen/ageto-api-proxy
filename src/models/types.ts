@@ -88,3 +88,55 @@ export type LastTotalizerRecordingType = {
   L3_current_avg: number;
   total_current_avg: number;
 };
+
+export const dataColumns = [
+  "BMS1_P_total",
+  "BMS1_SOC",
+  "GEN_E_total",
+  "GEN_P_total",
+  "GEN_Run_hrs",
+  "INV1_P_total",
+  "INV2_P_total",
+  "INV_E_total_CHG",
+  "INV_E_total_DIS",
+  "LOAD1_P_total",
+  "LOAD_E_total",
+  "OFFSETS_CO2_tons",
+  "PV1_P_total",
+  "PV2_P_total",
+  "PV3_P_total",
+  "PV_E_total",
+] as const;
+
+export type ColumnType = (typeof dataColumns)[number];
+
+export type PayloadType = {
+  data: number[];
+  meta: string[];
+};
+
+export type AgetoResponseDataType = {
+  format: {
+    //the type of this is array of the union type ColumnType
+    data: ColumnType[];
+    meta: string[];
+  };
+  payload: PayloadType[];
+};
+
+export type EnergyData = {
+  genEnergy: number;
+  batteryDIS: number;
+  batteryCHG: number;
+  pvEnergy: number;
+  totalLoad: number;
+  dailyCO2Offset: number;
+  peakLoad?: number;
+};
+
+export type DailyEnergyTotalType = EnergyData & {
+  date: string;
+  lastReading: {
+    [key in ColumnType]: number;
+  };
+};
