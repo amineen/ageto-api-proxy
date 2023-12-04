@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.getEnergyDataFromAgetoAPI = exports.insertGenerationData = void 0;
+exports.getUniqueMonths = exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.getEnergyDataFromAgetoAPI = exports.insertGenerationData = void 0;
 const types_1 = require("../models/types");
 const GenerationDataSchema_1 = require("../models/GenerationDataSchema");
 const TotalizerDataModel_1 = __importDefault(require("../models/TotalizerDataModel"));
@@ -586,8 +586,66 @@ const getGenerationDailyEnergyTotal = async (req, res) => {
     }
 };
 exports.getGenerationDailyEnergyTotal = getGenerationDailyEnergyTotal;
-// @desc get generation data for a given month
-// @route GET /api/v1/generation-data/monthly-data?month=YYYY-MM
-// @access Private
-// TODO: implement this endpoint
+//@desc get list of unique months in totalizer data collection
+//@route GET /api/v1/generation-data/months
+//@access Private
+const getUniqueMonths = async (req, res) => {
+    try {
+        const result = await TotalizerDataModel_1.default.aggregate([
+            {
+                //group by month and year fields in the collection. the month and year fields are have number type
+                $group: {
+                    _id: {
+                        month: "$month",
+                        year: "$year",
+                    },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    months: {
+                        $concat: [
+                            { $toString: "$_id.year" },
+                            "-",
+                            {
+                                $cond: [
+                                    { $lt: ["$_id.month", 10] },
+                                    { $concat: ["0", { $toString: "$_id.month" }] },
+                                    { $toString: "$_id.month" },
+                                ],
+                            },
+                        ],
+                    },
+                    periodCode: {
+                        $concat: [
+                            { $toString: "$_id.year" },
+                            {
+                                $cond: [
+                                    { $lt: ["$_id.month", 10] },
+                                    { $concat: ["0", { $toString: "$_id.month" }] },
+                                    { $toString: "$_id.month" },
+                                ],
+                            },
+                        ],
+                    },
+                },
+            },
+            //convert codes to number and sort in descending order
+            { $sort: { periodCode: -1 } },
+            { $project: { periodCode: 0 } },
+        ]);
+        return res.status(200).json({
+            success: true,
+            data: result,
+        });
+    }
+    catch (error) {
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+};
+exports.getUniqueMonths = getUniqueMonths;
 //# sourceMappingURL=generation-data-controller.js.map

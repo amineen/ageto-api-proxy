@@ -40,4 +40,6 @@ router
   .route("/daily-energy-from-ageto-api")
   .get(generationDataController.getEnergyDataFromAgetoAPI);
 
+router.route("/unique-months").get(generationDataController.getUniqueMonths);
+
 export default router;

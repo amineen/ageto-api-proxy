@@ -665,7 +665,64 @@ export const getGenerationDailyEnergyTotal = async (
   }
 };
 
-// @desc get generation data for a given month
-// @route GET /api/v1/generation-data/monthly-data?month=YYYY-MM
-// @access Private
-// TODO: implement this endpoint
+//@desc get list of unique months in totalizer data collection
+//@route GET /api/v1/generation-data/months
+//@access Private
+export const getUniqueMonths = async (req: Request, res: Response) => {
+  try {
+    const result = await TotalizerDataModel.aggregate([
+      {
+        //group by month and year fields in the collection. the month and year fields are have number type
+        $group: {
+          _id: {
+            month: "$month",
+            year: "$year",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          months: {
+            $concat: [
+              { $toString: "$_id.year" },
+              "-",
+              {
+                $cond: [
+                  { $lt: ["$_id.month", 10] },
+                  { $concat: ["0", { $toString: "$_id.month" }] },
+                  { $toString: "$_id.month" },
+                ],
+              },
+            ],
+          },
+          periodCode: {
+            $concat: [
+              { $toString: "$_id.year" },
+              {
+                $cond: [
+                  { $lt: ["$_id.month", 10] },
+                  { $concat: ["0", { $toString: "$_id.month" }] },
+                  { $toString: "$_id.month" },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      //convert codes to number and sort in descending order
+      { $sort: { periodCode: -1 } },
+      { $project: { periodCode: 0 } },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
