@@ -653,7 +653,7 @@ exports.getUniqueMonths = getUniqueMonths;
 //@access Private
 const getMonthlyTotalizerData = async (req, res) => {
     try {
-        const period = req.query.date;
+        const period = req.query.period;
         let year;
         let month;
         if (!period) {
