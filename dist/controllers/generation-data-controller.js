@@ -637,7 +637,7 @@ const getUniqueMonths = async (req, res) => {
         ]);
         return res.status(200).json({
             success: true,
-            data: result,
+            data: result.map((item) => item.months),
         });
     }
     catch (error) {
