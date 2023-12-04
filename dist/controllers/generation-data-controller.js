@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUniqueMonths = exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.getEnergyDataFromAgetoAPI = exports.insertGenerationData = void 0;
+exports.getMonthlyTotalizerData = exports.getUniqueMonths = exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.getEnergyDataFromAgetoAPI = exports.insertGenerationData = void 0;
 const types_1 = require("../models/types");
 const GenerationDataSchema_1 = require("../models/GenerationDataSchema");
 const TotalizerDataModel_1 = __importDefault(require("../models/TotalizerDataModel"));
@@ -648,4 +648,79 @@ const getUniqueMonths = async (req, res) => {
     }
 };
 exports.getUniqueMonths = getUniqueMonths;
+//@desc get totalizer data for a given month.
+//@route GET /api/v1/generation-data/monthly-data?month=YYYY-MM
+//@access Private
+const getMonthlyTotalizerData = async (req, res) => {
+    try {
+        const period = req.query.date;
+        let year;
+        let month;
+        if (!period) {
+            const today = new Date();
+            year = today.getFullYear();
+            month = today.getMonth() + 1;
+        }
+        else {
+            const periodArr = period.split("-");
+            year = parseInt(periodArr[0]);
+            month = parseInt(periodArr[1]);
+        }
+        const totalKwhResult = await TotalizerDataModel_1.default.aggregate([
+            {
+                $match: {
+                    month,
+                    year,
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalkWh: { $sum: "$dailykWh" },
+                },
+            },
+        ]);
+        const hourlyDataResult = await TotalizerDataModel_1.default.aggregate([
+            {
+                $match: {
+                    month,
+                    year,
+                },
+            },
+            {
+                $unwind: "$readings",
+            },
+            {
+                $group: {
+                    _id: "$readings.hour",
+                    peakLoad: { $max: "$readings.total_true_power_avg" },
+                    minLoad: { $min: "$readings.total_true_power_avg" },
+                    avgLoad: { $avg: "$readings.total_true_power_avg" },
+                },
+            },
+            {
+                $sort: { _id: 1 },
+            },
+        ]);
+        const result = {
+            totalkWh: totalKwhResult[0]?.totalkWh,
+            hours: hourlyDataResult.map((data) => data._id),
+            peakLoad: hourlyDataResult.map((data) => data.peakLoad),
+            minLoad: hourlyDataResult.map((data) => data.minLoad),
+            avgLoad: hourlyDataResult.map((data) => data.avgLoad),
+        };
+        return res.status(200).json({
+            success: true,
+            data: result,
+        });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+};
+exports.getMonthlyTotalizerData = getMonthlyTotalizerData;
 //# sourceMappingURL=generation-data-controller.js.map

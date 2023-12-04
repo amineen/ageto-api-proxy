@@ -42,4 +42,8 @@ router
 
 router.route("/unique-months").get(generationDataController.getUniqueMonths);
 
+router
+  .route("/monthly-totalizer-data")
+  .get(generationDataController.getMonthlyTotalizerData);
+
 export default router;

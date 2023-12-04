@@ -726,3 +726,82 @@ export const getUniqueMonths = async (req: Request, res: Response) => {
     });
   }
 };
+
+//@desc get totalizer data for a given month.
+//@route GET /api/v1/generation-data/monthly-data?month=YYYY-MM
+//@access Private
+export const getMonthlyTotalizerData = async (req: Request, res: Response) => {
+  try {
+    const period = req.query.date as string;
+
+    let year: number;
+    let month: number;
+
+    if (!period) {
+      const today = new Date();
+      year = today.getFullYear();
+      month = today.getMonth() + 1;
+    } else {
+      const periodArr = period.split("-");
+      year = parseInt(periodArr[0]);
+      month = parseInt(periodArr[1]);
+    }
+
+    const totalKwhResult = await TotalizerDataModel.aggregate([
+      {
+        $match: {
+          month,
+          year,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalkWh: { $sum: "$dailykWh" },
+        },
+      },
+    ]);
+
+    const hourlyDataResult = await TotalizerDataModel.aggregate([
+      {
+        $match: {
+          month,
+          year,
+        },
+      },
+      {
+        $unwind: "$readings",
+      },
+      {
+        $group: {
+          _id: "$readings.hour",
+          peakLoad: { $max: "$readings.total_true_power_avg" },
+          minLoad: { $min: "$readings.total_true_power_avg" },
+          avgLoad: { $avg: "$readings.total_true_power_avg" },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+    ]);
+
+    const result = {
+      totalkWh: totalKwhResult[0]?.totalkWh,
+      hours: hourlyDataResult.map((data) => data._id),
+      peakLoad: hourlyDataResult.map((data) => data.peakLoad),
+      minLoad: hourlyDataResult.map((data) => data.minLoad),
+      avgLoad: hourlyDataResult.map((data) => data.avgLoad),
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};

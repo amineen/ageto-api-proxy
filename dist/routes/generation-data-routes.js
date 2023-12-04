@@ -58,5 +58,8 @@ router
     .route("/daily-energy-from-ageto-api")
     .get(generationDataController.getEnergyDataFromAgetoAPI);
 router.route("/unique-months").get(generationDataController.getUniqueMonths);
+router
+    .route("/monthly-totalizer-data")
+    .get(generationDataController.getMonthlyTotalizerData);
 exports.default = router;
 //# sourceMappingURL=generation-data-routes.js.map
