@@ -788,6 +788,7 @@ export const getMonthlyTotalizerData = async (req: Request, res: Response) => {
     const result = {
       totalkWh: totalKwhResult[0]?.totalkWh,
       hours: hourlyDataResult.map((data) => data._id),
+      monthlyPeak: Math.max(...hourlyDataResult.map((data) => data.peakLoad)),
       peakLoad: hourlyDataResult.map((data) => data.peakLoad),
       minLoad: hourlyDataResult.map((data) => data.minLoad),
       avgLoad: hourlyDataResult.map((data) => data.avgLoad),
