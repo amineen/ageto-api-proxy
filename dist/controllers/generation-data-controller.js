@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMonthlyTotalizerData = exports.getUniqueMonths = exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.getEnergyDataFromAgetoAPI = exports.insertGenerationData = void 0;
+exports.getYearlyTotalizerData = exports.getMonthlyTotalizerData = exports.getUniqueMonths = exports.getGenerationDailyEnergyTotal = exports.getGenerationDataForCharting = exports.updateLastTotalizerRecord = exports.getLastTotalizerRecord = exports.getTotalizerDailyReadingsForCharting = exports.getTotalizerDailyReadings = exports.getGenerationDataByDate = exports.getLastGenerationDataReading = exports.getEnergyDataFromAgetoAPI = exports.insertGenerationData = void 0;
 const types_1 = require("../models/types");
 const GenerationDataSchema_1 = require("../models/GenerationDataSchema");
 const TotalizerDataModel_1 = __importDefault(require("../models/TotalizerDataModel"));
@@ -723,4 +723,37 @@ const getMonthlyTotalizerData = async (req, res) => {
     }
 };
 exports.getMonthlyTotalizerData = getMonthlyTotalizerData;
+//@desc get yearly kWh to from totalizer data for a given year
+//@route GET /api/v1/generation-data/yearly-kWh-data?year=YYYY
+//@access Private
+const getYearlyTotalizerData = async (req, res) => {
+    try {
+        const year = parseInt(req.query.year);
+        const result = await TotalizerDataModel_1.default.aggregate([
+            {
+                $match: {
+                    year,
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalkWh: { $sum: "$dailykWh" },
+                },
+            },
+        ]);
+        return res.status(200).json({
+            success: true,
+            data: result[0]?.totalkWh,
+        });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+};
+exports.getYearlyTotalizerData = getYearlyTotalizerData;
 //# sourceMappingURL=generation-data-controller.js.map

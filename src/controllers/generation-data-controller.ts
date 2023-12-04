@@ -805,3 +805,38 @@ export const getMonthlyTotalizerData = async (req: Request, res: Response) => {
     });
   }
 };
+
+//@desc get yearly kWh to from totalizer data for a given year
+//@route GET /api/v1/generation-data/yearly-kWh-data?year=YYYY
+//@access Private
+
+export const getYearlyTotalizerData = async (req: Request, res: Response) => {
+  try {
+    const year = parseInt(req.query.year as string);
+
+    const result = await TotalizerDataModel.aggregate([
+      {
+        $match: {
+          year,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalkWh: { $sum: "$dailykWh" },
+        },
+      },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: result[0]?.totalkWh,
+    });
+  } catch (error: any) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
